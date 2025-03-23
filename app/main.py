@@ -1,5 +1,3 @@
-# Paste the content of your main.py file here
-cat > app/main.py << EOF
 from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -37,6 +35,51 @@ from app.schwab import router as schwab_router
 from app.strategy import router as strategy_router
 from app.auth import DEV_MODE, get_current_user, get_optional_user, User, oauth2_scheme, get_token
 from app.config import BASE_URL, FRONTEND_URLS
+
+# app/main.py (update to include versioning)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+
+# Import routers
+from app.api.endpoints import positions, auth, market_data, alerts, risk, analytics
+
+app = FastAPI(title=settings.APP_NAME)
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.FRONTEND_URLS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Dev-Mode"],
+)
+
+# API v1 router
+from fastapi import APIRouter
+
+api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router.include_router(positions.router, prefix="/positions", tags=["positions"])
+api_v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_v1_router.include_router(market_data.router, prefix="/market-data", tags=["market-data"])
+api_v1_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
+api_v1_router.include_router(risk.router, prefix="/risk", tags=["risk"])
+api_v1_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+
+# Maintain backward compatibility with original routes
+app.include_router(api_v1_router)
+
+# Legacy router (without the /v1 prefix)
+api_legacy_router = APIRouter(prefix="/api")
+api_legacy_router.include_router(positions.router, prefix="/positions", tags=["positions"])
+api_legacy_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_legacy_router.include_router(market_data.router, prefix="/market-data", tags=["market-data"])
+api_legacy_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
+api_legacy_router.include_router(risk.router, prefix="/risk", tags=["risk"])
+api_legacy_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+
+app.include_router(api_legacy_router)
 
 # Set up logging
 logging.basicConfig(
