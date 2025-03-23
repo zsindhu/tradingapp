@@ -1,0 +1,6 @@
+# Unignore specific directories
+!app/
+!app/**
+!src/
+!src/**
+!alembic/
